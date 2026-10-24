@@ -28,6 +28,7 @@ h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.3px}
 .peer{background:var(--peer)}.same{background:var(--same)}.sel{background:var(--sel)}
 .giv{font-weight:700}.usr{color:var(--user);font-weight:500}.err{color:var(--err);background:var(--errbg);font-weight:500}
 .nt{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;padding:1px}
+.nt i.hl{background:var(--acc);color:#fff;font-weight:700;border-radius:50%}
 .nt i{font-style:normal;font-size:clamp(8px,2.6vw,12px);color:var(--mute);display:flex;align-items:center;justify-content:center}
 #tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 #tools button{background:var(--panel);border-radius:12px;padding:10px 0;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -106,7 +107,7 @@ function render(){
   if(i===g.sel&&!q)cls+=' sel';else if(set.hl){if(sv&&g.v[i]===sv)cls+=' same';else if(!q&&g.sel>=0&&PEER[g.sel].includes(i))cls+=' peer'}
   const v=g.v[i];let t='';
   if(v){cls+=g.p[i]?' giv':v===g.s[i]?' usr':' err';t=v}
-  else if(g.n[i]){t='<span class="nt">'+[1,2,3,4,5,6,7,8,9].map(d=>'<i>'+(g.n[i]>>(d-1)&1?d:'')+'</i>').join('')+'</span>'}
+  else if(g.n[i]){t='<span class="nt">'+[1,2,3,4,5,6,7,8,9].map(d=>{const on=g.n[i]>>(d-1)&1;return '<i'+(on&&set.hl&&d===sv?' class="hl"':'')+'>'+(on?d:'')+'</i>'}).join('')+'</span>'}
   h+=`<button class="${cls}" data-i="${i}" role="gridcell" aria-label="Row ${r+1} column ${c+1}">${t}</button>`;
  }
  $('#board').innerHTML=h;
