@@ -29,14 +29,16 @@ h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.3px}
 .giv{font-weight:700}.usr{color:var(--user);font-weight:500}.err{color:var(--err);background:var(--errbg);font-weight:500}
 .nt{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;padding:1px}
 .nt i{font-style:normal;font-size:clamp(8px,2.6vw,12px);color:var(--mute);display:flex;align-items:center;justify-content:center}
-#tools{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-#tools button{background:var(--panel);border-radius:12px;padding:10px 0;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:2px}
+#tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#tools button{background:var(--panel);border-radius:12px;padding:10px 0;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
 #tools b{font-size:20px;font-weight:500}
 #tools button[aria-pressed=true]{background:var(--acc);color:#fff}
 #pad{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
 #pad button{background:var(--panel);border-radius:10px;padding:8px 0 5px;font-size:26px;color:var(--user);display:flex;flex-direction:column;align-items:center;line-height:1.1}
 #pad small{font-size:10px;color:var(--mute)}
 #pad button:disabled{opacity:.25}
+#pad.nm button{color:var(--mute)}
+#pad button.on{background:var(--sel)}
 dialog{border:0;border-radius:16px;background:var(--panel);color:var(--ink);width:min(92vw,380px);padding:20px}
 dialog::backdrop{background:#0008}
 dialog h2{margin:0 0 12px;font-size:20px}
@@ -58,6 +60,7 @@ td,th{padding:8px 4px;text-align:right;border-bottom:1px solid var(--line)}td:fi
 <button data-a="erase"><b>⌫</b>Erase</button>
 <button data-a="note" aria-pressed="false"><b>✎</b><span id="nl">Notes off</span></button>
 <button data-a="hint"><b>?</b>Hint</button>
+<button data-a="quick" aria-pressed="false"><b>⚡</b>Quick</button>
 </div>
 <div id="pad"></div>
 </main>
@@ -96,21 +99,21 @@ const save=()=>{if(g&&g.done!=='idle')SV('sdk-game',g)};
 const fmt=t=>(t/60|0)+':'+String(t%60).padStart(2,'0');
 const vib=ms=>{if(set.vib&&navigator.vibrate)navigator.vibrate(ms)};
 function render(){
- const sv=g.sel>=0?g.v[g.sel]:0;let h='';
+ const q=g.quick&&g.qn,sv=q?g.qn:(g.sel>=0?g.v[g.sel]:0);let h='';
  for(let i=0;i<81;i++){
   const r=i/9|0,c=i%9;let cls='c';
   if(c%3===2&&c<8)cls+=' br';if(r%3===2&&r<8)cls+=' bb';
-  if(i===g.sel)cls+=' sel';else if(g.sel>=0&&set.hl){if(sv&&g.v[i]===sv)cls+=' same';else if(PEER[g.sel].includes(i))cls+=' peer'}
+  if(i===g.sel&&!q)cls+=' sel';else if(set.hl){if(sv&&g.v[i]===sv)cls+=' same';else if(!q&&g.sel>=0&&PEER[g.sel].includes(i))cls+=' peer'}
   const v=g.v[i];let t='';
   if(v){cls+=g.p[i]?' giv':v===g.s[i]?' usr':' err';t=v}
   else if(g.n[i]){t='<span class="nt">'+[1,2,3,4,5,6,7,8,9].map(d=>'<i>'+(g.n[i]>>(d-1)&1?d:'')+'</i>').join('')+'</span>'}
   h+=`<button class="${cls}" data-i="${i}" role="gridcell" aria-label="Row ${r+1} column ${c+1}">${t}</button>`;
  }
  $('#board').innerHTML=h;
- $('#pad').innerHTML=[1,2,3,4,5,6,7,8,9].map(n=>{const k=g.v.filter((v,i)=>v===n&&v===g.s[i]).length;return `<button data-n="${n}" ${k>=9?'disabled':''}>${n}<small>${9-k}</small></button>`}).join('');
+ $('#pad').innerHTML=[1,2,3,4,5,6,7,8,9].map(n=>{const k=g.v.filter((v,i)=>v===n&&v===g.s[i]).length;return `<button data-n="${n}" class="${g.quick&&g.qn===n?'on':''}" ${k>=9?'disabled':''}>${n}<small>${9-k}</small></button>`}).join('');
  $('#dl').textContent=DIFF[g.d][1];$('#ms').textContent='Mistakes '+g.m+'/3';
  $('#time').textContent=set.timer?fmt(g.t):'';
- const nb=$('[data-a=note]');nb.setAttribute('aria-pressed',g.note);$('#nl').textContent=g.note?'Notes on':'Notes off';
+ const nb=$('[data-a=note]');nb.setAttribute('aria-pressed',g.note);$('#nl').textContent=g.note?'Notes on':'Notes off';$('#pad').classList.toggle('nm',!!g.note);$('[data-a=quick]').setAttribute('aria-pressed',!!g.quick);
 }
 function snap(){g.hist.push({v:g.v.slice(),n:g.n.slice()});if(g.hist.length>100)g.hist.shift()}
 function clearPeers(i,n){const b=~(1<<(n-1));PEER[i].forEach(j=>g.n[j]&=b)}
@@ -131,6 +134,7 @@ function put(n){
 function act(a){
  if(g.done)return;
  if(a==='note'){g.note=!g.note}
+ else if(a==='quick'){g.quick=!g.quick;g.qn=0}
  else if(a==='undo'){const h=g.hist.pop();if(h){g.v=h.v;g.n=h.n}}
  else if(a==='erase'){const i=g.sel;if(i>=0&&!g.p[i]&&!(g.v[i]&&g.v[i]===g.s[i])){snap();g.v[i]=0;g.n[i]=0}}
  else if(a==='hint'){
@@ -150,8 +154,8 @@ function view(name){
   dlg('<h2>Settings</h2><div class="row"><span>Theme</span><button class="big" style="width:auto;margin:0;padding:8px 14px" data-act="theme">'+set.theme[0].toUpperCase()+set.theme.slice(1)+'</button></div>'+tg('timer','Show timer')+tg('vib','Vibration')+tg('hl','Highlight row, column and digit')+'<button class="big" data-act="menu">Back</button>')}
 }
 function theme(){const d=set.theme==='dark'||(set.theme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.querySelector('meta[name=theme-color]').content=d?'#0F1626':'#EDF1F7'}
-$('#board').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){g.sel=+b.dataset.i;save();render()}});
-$('#pad').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(b)put(+b.dataset.n)});
+$('#board').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){g.sel=+b.dataset.i;if(g.quick&&g.qn&&!g.done)put(g.qn);else{save();render()}}});
+$('#pad').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(b){const n=+b.dataset.n;if(g.quick&&!g.done){g.qn=g.qn===n?0:n;save();render()}else put(n)}});
 $('#tools').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a)});
 $('#menu').onclick=()=>view('menu');
 $('#dlg').addEventListener('click',e=>{
