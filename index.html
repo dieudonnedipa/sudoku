@@ -127,7 +127,7 @@ function check(){
 function put(n){
  if(g.done||g.sel<0)return;const i=g.sel;if(g.p[i])return;
  if(g.v[i]&&g.v[i]===g.s[i])return;
- if(g.note){if(g.v[i])return;snap();g.n[i]^=1<<(n-1)}
+ if(g.note){if(g.v[i])return;if(!(g.n[i]>>(n-1)&1)&&PEER[i].some(j=>g.v[j]===n&&g.v[j]===g.s[j])){vib(40);return}snap();g.n[i]^=1<<(n-1)}
  else{if(g.v[i]===n)return;snap();g.v[i]=n;g.n[i]=0;
   if(n!==g.s[i]){g.m++;vib(150)}else{clearPeers(i,n);vib(15)}}
  save();render();check();
