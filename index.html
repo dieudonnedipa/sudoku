@@ -92,7 +92,7 @@ function newGame(d){
  g={d,p,s,v:p.slice(),n:Array(81).fill(0),sel:-1,note:false,m:0,t:0,hist:[],hints:0,done:''};
  st[d]=st[d]||{p:0,w:0,best:0,streak:0};st[d].p++;SV('sdk-stats',st);save();render();
 }
-const save=()=>SV('sdk-game',g);
+const save=()=>{if(g&&g.done!=='idle')SV('sdk-game',g)};
 const fmt=t=>(t/60|0)+':'+String(t%60).padStart(2,'0');
 const vib=ms=>{if(set.vib&&navigator.vibrate)navigator.vibrate(ms)};
 function render(){
@@ -142,7 +142,9 @@ function act(a){
 }
 function dlg(html){$('#dc').innerHTML=html;const d=$('#dlg');if(!d.open)d.showModal()}
 function view(name){
- if(name==='menu'){dlg('<h2>Menu</h2>'+Object.keys(DIFF).map(k=>`<button class="big" data-act="new" data-d="${k}">New ${DIFF[k][1]} game</button>`).join('')+'<button class="big" data-act="stats">Stats</button><button class="big" data-act="settings">Settings</button><button class="big p" data-act="close">Resume</button>')}
+ const on=g&&!g.done,pick=()=>'<p>Choose a difficulty</p>'+Object.keys(DIFF).map(k=>`<button class="big" data-act="new" data-d="${k}">${DIFF[k][1]}</button>`).join('');
+ if(name==='menu'){dlg('<h2>'+(on?'Game in progress':'Sudoku')+'</h2>'+(on?`<p>${DIFF[g.d][1]} · ${fmt(g.t)} · Mistakes ${g.m}/3</p><button class="big p" data-act="close">Resume game</button><button class="big" data-act="pick">New game</button>`:pick())+'<button class="big" data-act="stats">Stats</button><button class="big" data-act="settings">Settings</button>')}
+ if(name==='pick'){dlg('<h2>New game</h2>'+(on?'<p>Starting a new game counts your current game as lost.</p>':'')+pick()+'<button class="big" data-act="menu">Back</button>')}
  if(name==='stats'){dlg('<h2>Stats</h2><table><tr><th></th><th>Played</th><th>Won</th><th>Best</th><th>Streak</th></tr>'+Object.keys(DIFF).map(k=>{const s=st[k]||{p:0,w:0,best:0,streak:0};return `<tr><td>${DIFF[k][1]}</td><td>${s.p}</td><td>${s.w}</td><td>${s.best?fmt(s.best):'-'}</td><td>${s.streak}</td></tr>`}).join('')+'</table><button class="big" data-act="menu">Back</button>')}
  if(name==='settings'){const tg=(k,l)=>`<div class="row"><span>${l}</span><button class="big" style="width:auto;margin:0;padding:8px 14px" data-act="tg" data-k="${k}">${set[k]?'On':'Off'}</button></div>`;
   dlg('<h2>Settings</h2><div class="row"><span>Theme</span><button class="big" style="width:auto;margin:0;padding:8px 14px" data-act="theme">'+set.theme[0].toUpperCase()+set.theme.slice(1)+'</button></div>'+tg('timer','Show timer')+tg('vib','Vibration')+tg('hl','Highlight row, column and digit')+'<button class="big" data-act="menu">Back</button>')}
@@ -168,10 +170,11 @@ document.addEventListener('keydown',e=>{
  else if(e.key==='n')act('note');
  else if(e.key.startsWith('Arrow')&&g.sel>=0){const d={ArrowLeft:-1,ArrowRight:1,ArrowUp:-9,ArrowDown:9}[e.key],c=g.sel%9;if(!(d===-1&&c===0)&&!(d===1&&c===8)){const j=g.sel+d;if(j>=0&&j<81){g.sel=j;render()}}}
 });
-document.addEventListener('visibilitychange',()=>{if(g)save()});
-setInterval(()=>{if(!g||g.done||document.hidden)return;g.t++;if(set.timer)$('#time').textContent=fmt(g.t);if(g.t%5===0)save()},1000);
+document.addEventListener('visibilitychange',()=>{if(g)save();if(!document.hidden&&g&&!g.done&&!$('#dlg').open)view('menu')});
+setInterval(()=>{if(!g||g.done||document.hidden||$('#dlg').open)return;g.t++;if(set.timer)$('#time').textContent=fmt(g.t);if(g.t%5===0)save()},1000);
 theme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',theme);
-if(!g)newGame('easy');else{render();if(g.done)view('menu')}
+if(!g)g={d:'easy',p:Array(81).fill(0),s:Array(81).fill(0),v:Array(81).fill(0),n:Array(81).fill(0),sel:-1,note:false,m:0,t:0,hist:[],hints:0,done:'idle'};
+render();view('menu');
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
